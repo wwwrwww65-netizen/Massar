@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Centered within 66dp zone: from (21,21) to (87,87) -->
+    <!-- Decision Pathway Lines -->
+    <path
+        android:pathData="M32,74 L48,58 L62,64 L76,34"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="32"
+                android:startY="74"
+                android:endX="76"
+                android:endY="34"
+                android:type="linear">
+                <item android:color="#38BDF8" android:offset="0.0" />
+                <item android:color="#10B981" android:offset="0.5" />
+                <item android:color="#F59E0B" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- Arrow Head at top right -->
+    <path
+        android:pathData="M62,34 L76,34 L76,48"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeColor="#F59E0B" />
+    <!-- Alternative Pathway (Dotted/Secondary) -->
+    <path
+        android:pathData="M48,58 L68,46 L74,44"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:strokeColor="#64748B" />
+    <!-- Decision Nodes -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M32,74m-4,0a4,4 0,1,1 8,0a4,4 0,1,1 -8,0" />
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M48,58m-4.5,0a4.5,4.5 0,1,1 9,0a4.5,4.5 0,1,1 -9,0" />
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M62,64m-3.5,0a3.5,3.5 0,1,1 7,0a3.5,3.5 0,1,1 -7,0" />
+    <!-- Pulse Center Ring -->
+    <path
+        android:pathData="M48,58m-7,0a7,7 0,1,1 14,0a7,7 0,1,1 -14,0"
+        android:strokeWidth="1.5"
+        android:strokeColor="#A7F3D0" />
+</vector>
