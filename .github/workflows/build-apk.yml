@@ -49,6 +49,15 @@ jobs:
           fi
           chmod +x ./gradlew
 
+          # 4. Inject GEMINI_API_KEY from GitHub Secrets into .env
+          if [ -n "${{ secrets.GEMINI_API_KEY }}" ]; then
+            echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
+            echo "Successfully created .env from GitHub Secret GEMINI_API_KEY"
+          else
+            echo "GEMINI_API_KEY=" > .env
+            echo "GEMINI_API_KEY is empty in secrets, creating blank .env"
+          fi
+
       - name: Build Debug & Release APKs
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

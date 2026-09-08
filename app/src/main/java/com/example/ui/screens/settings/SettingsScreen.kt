@@ -106,6 +106,9 @@ fun SettingsScreen(
             mutableStateOf(if (state.profile.frozenAssetsValue > 0) state.profile.frozenAssetsValue.toInt().toString() else "")
         }
 
+        var apiKeyInput by remember { mutableStateOf(com.example.data.remote.GeminiService.getActiveApiKey()) }
+        var isApiKeySaved by remember { mutableStateOf(com.example.data.remote.GeminiService.getActiveApiKey().isNotBlank()) }
+
         val availableGoals = listOf(
             "بناء صندوق طوارئ (Runway)",
             "زيادة الادخار والاستثمار الشهري",
@@ -634,6 +637,83 @@ fun SettingsScreen(
                                         )
                                     )
                                 }
+                            }
+                        }
+                    }
+                }
+
+                // Section 6: Gemini AI Key Configuration
+                item {
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, if (isApiKeySaved) MasarEmerald.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = MasarGold, modifier = Modifier.size(20.dp))
+                                    Text(
+                                        text = "6. مفتاح الذكاء الاصطناعي (Gemini API)",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                if (isApiKeySaved) {
+                                    Surface(
+                                        shape = RoundedCornerShape(20.dp),
+                                        color = MasarEmerald.copy(alpha = 0.15f)
+                                    ) {
+                                        Text(
+                                            text = "متصل بنجاح ✓",
+                                            color = MasarEmerald,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Text(
+                                text = "يمكنك إدخال أو تعديل مفتاح Google Gemini API هنا لتفعيل التحليل الاستشاري المباشر:",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            OutlinedTextField(
+                                value = apiKeyInput,
+                                onValueChange = { 
+                                    apiKeyInput = it.trim()
+                                },
+                                placeholder = { Text("الصق مفتاح API هنا (مثل AQ... أو AIzaSy...)") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MasarEmerald,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                                )
+                            )
+
+                            Button(
+                                onClick = {
+                                    com.example.data.remote.GeminiService.setCustomApiKey(apiKeyInput.trim())
+                                    isApiKeySaved = apiKeyInput.trim().isNotBlank()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = if (isApiKeySaved) MasarEmerald else MaterialTheme.colorScheme.primary),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = if (isApiKeySaved) "تحديث وحفظ المفتاح" else "تفعيل مفتاح الذكاء الاصطناعي",
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }

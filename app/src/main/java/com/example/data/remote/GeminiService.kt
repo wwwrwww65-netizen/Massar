@@ -59,13 +59,13 @@ object GeminiService {
     private const val TAG = "GeminiService"
     private const val DEFAULT_FALLBACK_API_KEY = ""
 
-    // Preferred Gemini models in priority order verified with API key
+    // Official Google Gemini API models in priority order
     private val MODELS_TO_TRY = listOf(
-        "gemini-3.1-flash-lite",
-        "gemini-3.8-flash",
-        "gemini-3.6-flash",
-        "gemini-3.5-flash-lite",
-        "gemini-flash-latest"
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-2.5-pro",
+        "gemini-1.5-pro"
     )
     private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
