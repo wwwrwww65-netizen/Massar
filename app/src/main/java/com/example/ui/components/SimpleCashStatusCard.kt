@@ -13,22 +13,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.HourglassBottom
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.TrendingFlat
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -46,28 +39,31 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.domain.model.BusinessType
 import com.example.domain.model.FinancialMetrics
 import com.example.domain.model.RiskLevel
+import com.example.domain.model.UserProfile
 import com.example.ui.theme.MasarEmerald
 import com.example.ui.theme.MasarGold
 import com.example.ui.theme.MasarRose
 import com.example.ui.theme.MasarSky
 
 /**
- * Clean, human-friendly Cash & Runway Status Card with Progressive Disclosure.
- * Shows high-level health first; expands for technical details on user demand.
+ * Clean, Accessible Cash & Health Card with explicit status text + colors.
+ * Adapts labels dynamically based on User Profile (Employee vs Business).
  */
 @Composable
 fun SimpleCashStatusCard(
+    profile: UserProfile,
     metrics: FinancialMetrics,
     currencySymbol: String,
     modifier: Modifier = Modifier
 ) {
     var isExpanded by remember { mutableStateOf(false) }
+    val isEmployee = profile.businessType == BusinessType.EMPLOYEE
 
     val runwayText = if (metrics.runwayMonths >= 900) {
         "أموالك تغطي نفقاتك بالكامل ومستدامة"
@@ -86,11 +82,19 @@ fun SimpleCashStatusCard(
         RiskLevel.CRITICAL -> MasarRose
     }
 
+    // Explicit Textual Status for Accessibility & Clarity (Never rely on color alone)
     val healthSummary = when (metrics.overallRiskLevel) {
-        RiskLevel.LOW -> "وضعك المالي ممتاز ومستقر"
-        RiskLevel.MODERATE -> "وضعك المالي جيد، يحتاج متابعة بسيطة"
-        RiskLevel.HIGH -> "هناك ضغط على السيولة يتطلب ترشيداً"
-        RiskLevel.CRITICAL -> "وضعك المالي حرج ويتطلب تدخلاً فورياً"
+        RiskLevel.LOW -> "وضعك المالي مستقر ومطمئن"
+        RiskLevel.MODERATE -> "يحتاج متابعة وترشيد بسيط"
+        RiskLevel.HIGH -> "ضغط مرتفع على السيولة"
+        RiskLevel.CRITICAL -> "وضع حرج يتطلب تدخلاً فورياً"
+    }
+
+    val statusBadgeTitle = when (metrics.overallRiskLevel) {
+        RiskLevel.LOW -> "وضع مستقر"
+        RiskLevel.MODERATE -> "يحتاج متابعة"
+        RiskLevel.HIGH -> "ضغط سيولة"
+        RiskLevel.CRITICAL -> "حرج جداً"
     }
 
     Card(
@@ -105,7 +109,7 @@ fun SimpleCashStatusCard(
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            // Header: Status title + Human Health Pill
+            // Header: Status title + Explicit Text Pill
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -113,7 +117,7 @@ fun SimpleCashStatusCard(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Box(
                         modifier = Modifier
@@ -131,7 +135,7 @@ fun SimpleCashStatusCard(
                     }
                     Column {
                         Text(
-                            text = "رصيدك الحالي المتاح",
+                            text = if (isEmployee) "الرصيد والمدخرات المتاحة" else "السيولة النقدية المتاحة",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -140,12 +144,36 @@ fun SimpleCashStatusCard(
                             text = healthSummary,
                             style = MaterialTheme.typography.bodySmall,
                             color = statusColor,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
 
-                RiskBadge(level = metrics.overallRiskLevel)
+                // Explicit Status Badge with clear text
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = statusColor.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, statusColor.copy(alpha = 0.3f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(statusColor)
+                        )
+                        Text(
+                            text = statusBadgeTitle,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = statusColor,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -199,13 +227,13 @@ fun SimpleCashStatusCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 3 Essential Metrics (Monthly In, Monthly Out, Net Savings)
+            // 3 Essential Adapted Metrics
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 SubMetricBox(
-                    title = "يدخل شهرياً",
+                    title = if (isEmployee) "الراتب / الدخل" else "الإيراد الشهري",
                     amount = String.format("%,.0f %s", metrics.totalMonthlyRevenue, currencySymbol),
                     icon = Icons.Default.ArrowUpward,
                     accentColor = MasarEmerald,
@@ -213,7 +241,7 @@ fun SimpleCashStatusCard(
                 )
 
                 SubMetricBox(
-                    title = "يخرج شهرياً",
+                    title = if (isEmployee) "المصاريف المعيشية" else "تكاليف التشغيل",
                     amount = String.format("%,.0f %s", metrics.totalMonthlyExpenses, currencySymbol),
                     icon = Icons.Default.ArrowDownward,
                     accentColor = MasarRose,
@@ -221,7 +249,11 @@ fun SimpleCashStatusCard(
                 )
 
                 SubMetricBox(
-                    title = if (metrics.netMonthlyCashFlow >= 0) "الفائض الشهري" else "العجز الشهري",
+                    title = if (isEmployee) {
+                        if (metrics.netMonthlyCashFlow >= 0) "فائض الادخار" else "العجز الشهري"
+                    } else {
+                        if (metrics.netMonthlyCashFlow >= 0) "صافي الربح" else "صافي العجز"
+                    },
                     amount = String.format("%+,.0f %s", metrics.netMonthlyCashFlow, currencySymbol),
                     icon = if (metrics.netMonthlyCashFlow >= 0) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
                     accentColor = if (metrics.netMonthlyCashFlow >= 0) MasarEmerald else MasarRose,

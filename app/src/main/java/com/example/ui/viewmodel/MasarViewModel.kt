@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.data.repository.ChatMessage
+import com.example.data.repository.ChatSession
 import com.example.data.repository.MasarRepository
 import com.example.domain.engine.BootstrappingEngine
 import com.example.domain.engine.DecisionIntelligence
@@ -33,6 +34,7 @@ import com.example.domain.model.ScenarioType
 import com.example.domain.model.TransactionItem
 import com.example.domain.model.TransactionType
 import com.example.domain.model.UserProfile
+import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -64,7 +66,9 @@ data class MasarUiState(
     val budgets: List<BudgetItem> = emptyList(),
     val goals: List<GoalItem> = emptyList(),
     val savedScenarios: List<ScenarioParameters> = emptyList(),
+    val currentConversationId: String = "default_session",
     val chatMessages: List<ChatMessage> = emptyList(),
+    val chatSessions: List<ChatSession> = emptyList(),
     val auditLogs: List<AuditLog> = emptyList(),
     
     // Derived Financial Intelligence
@@ -206,6 +210,12 @@ class MasarViewModel(private val repository: MasarRepository) : ViewModel() {
         viewModelScope.launch {
             repository.getChatMessages().collect { msgs ->
                 _uiState.value = _uiState.value.copy(chatMessages = msgs)
+            }
+        }
+
+        viewModelScope.launch {
+            repository.getChatSessions().collect { sessions ->
+                _uiState.value = _uiState.value.copy(chatSessions = sessions)
             }
         }
 
@@ -359,7 +369,33 @@ class MasarViewModel(private val repository: MasarRepository) : ViewModel() {
         }
     }
 
-    // Chat Advisor
+    // Chat Advisor & History Management
+    fun startNewChat() {
+        val newSessionId = UUID.randomUUID().toString()
+        _uiState.value = _uiState.value.copy(
+            currentConversationId = newSessionId
+        )
+        showToast("تم بدء محادثة جديدة")
+    }
+
+    fun switchChatSession(sessionId: String) {
+        _uiState.value = _uiState.value.copy(
+            currentConversationId = sessionId
+        )
+    }
+
+    fun deleteChatSession(sessionId: String) {
+        viewModelScope.launch {
+            repository.deleteChatSession(sessionId)
+            if (_uiState.value.currentConversationId == sessionId) {
+                val remainingSessions = _uiState.value.chatSessions.filter { it.id != sessionId }
+                val nextSessionId = remainingSessions.firstOrNull()?.id ?: UUID.randomUUID().toString()
+                _uiState.value = _uiState.value.copy(currentConversationId = nextSessionId)
+            }
+            showToast("تم حذف المحادثة")
+        }
+    }
+
     fun sendAdvisorMessage(content: String) {
         if (content.isBlank()) return
         viewModelScope.launch {
@@ -367,6 +403,7 @@ class MasarViewModel(private val repository: MasarRepository) : ViewModel() {
             try {
                 repository.sendChatMessage(
                     content = content,
+                    conversationId = _uiState.value.currentConversationId,
                     profile = _uiState.value.profile,
                     metrics = _uiState.value.metrics
                 )
@@ -378,8 +415,23 @@ class MasarViewModel(private val repository: MasarRepository) : ViewModel() {
 
     fun clearChat() {
         viewModelScope.launch {
+            repository.deleteChatSession(_uiState.value.currentConversationId)
+            val newSessionId = UUID.randomUUID().toString()
+            _uiState.value = _uiState.value.copy(
+                currentConversationId = newSessionId
+            )
+            showToast("تم مسح المحادثة الحالية")
+        }
+    }
+
+    fun clearAllChats() {
+        viewModelScope.launch {
             repository.clearChat()
-            showToast("تم مسح سجل المحادثة")
+            val newSessionId = UUID.randomUUID().toString()
+            _uiState.value = _uiState.value.copy(
+                currentConversationId = newSessionId
+            )
+            showToast("تم مسح كافة سجلات المحادثات")
         }
     }
 

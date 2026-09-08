@@ -1,8 +1,9 @@
 package com.example.ui.screens.onboarding
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,30 +16,31 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.BusinessCenter
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CorporateFare
+import androidx.compose.material.icons.filled.Laptop
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -66,12 +68,17 @@ import com.example.ui.theme.MasarEmerald
 import com.example.ui.theme.MasarGold
 import com.example.ui.theme.MasarSky
 
+/**
+ * Modern Goal & Situation Adaptive Onboarding:
+ * Adapts tools, labels, and financial models according to the user's real situation:
+ * (Employee / Personal Finance vs Business / Commercial Venture)
+ */
 @Composable
 fun OnboardingScreen(
     onComplete: (
         businessName: String,
         businessType: BusinessType,
-        currency: String,
+        baseCurrency: String,
         capital: Double,
         revenue: Double,
         expenses: Double,
@@ -81,21 +88,34 @@ fun OnboardingScreen(
     MasarRtlProvider {
         var currentStep by remember { mutableStateOf(0) }
 
-        var businessName by remember { mutableStateOf("مشروعي الرقمي") }
-        var selectedBusinessType by remember { mutableStateOf(BusinessType.FREELANCER) }
+        var profileName by remember { mutableStateOf("حسابي المالي") }
+        var selectedSituation by remember { mutableStateOf(BusinessType.EMPLOYEE) }
         var baseCurrency by remember { mutableStateOf("USD") }
-        var capitalInput by remember { mutableStateOf("9500") }
-        var revenueInput by remember { mutableStateOf("3600") }
-        var expensesInput by remember { mutableStateOf("2100") }
+        var capitalInput by remember { mutableStateOf("12000") }
+        var revenueInput by remember { mutableStateOf("4500") }
+        var expensesInput by remember { mutableStateOf("2800") }
 
-        val availableGoals = listOf(
-            "المحافظة على السيولة لأكثر من 12 شهراً",
-            "ترشيد المصاريف وإلغاء الهدر",
-            "محاكاة قرارات التوظيف والتوسع",
-            "تسييل الأصول وبناء مصادر دخل جديدة",
-            "الاستعداد لجولة استثمارية أو تمويل"
+        val isEmployee = selectedSituation == BusinessType.EMPLOYEE
+
+        val employeeGoals = listOf(
+            "بناء صندوق طوارئ يغطي 6 أشهر",
+            "ترشيد المصاريف اليومية وتوفير 20%",
+            "محاكاة شراء أصل كبير (سيارة / عقار / زواج)",
+            "سداد الالتزامات والأقساط بأسرع وقت",
+            "استثمار الفائض الشهري وتنمية المدخرات"
         )
-        val selectedGoals = remember { mutableStateListOf("المحافظة على السيولة لأكثر من 12 شهراً", "محاكاة قرارات التوظيف والتوسع") }
+
+        val businessGoals = listOf(
+            "المحافظة على السيولة ورفع الـ Runway لأكثر من 12 شهراً",
+            "ترشيد تكاليف التشغيل وإلغاء الهدر",
+            "محاكاة قرارات التوظيف وشراء المعدات والتوسع",
+            "تسييل الأصول وبناء مصادر دخل جديدة",
+            "الاستعداد لجولة استثمارية أو تمويل تجاري"
+        )
+
+        val selectedGoals = remember {
+            mutableStateListOf("بناء صندوق طوارئ يغطي 6 أشهر", "ترشيد المصاريف اليومية وتوفير 20%")
+        }
 
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background
@@ -133,15 +153,26 @@ fun OnboardingScreen(
                         0 -> StepValueProposition(
                             onNext = { currentStep = 1 }
                         )
-                        1 -> StepBusinessType(
-                            businessName = businessName,
-                            onNameChange = { businessName = it },
-                            selectedType = selectedBusinessType,
-                            onTypeSelect = { selectedBusinessType = it },
+                        1 -> StepAdaptiveSituation(
+                            profileName = profileName,
+                            onNameChange = { profileName = it },
+                            selectedSituation = selectedSituation,
+                            onSituationSelect = { sit ->
+                                selectedSituation = sit
+                                selectedGoals.clear()
+                                if (sit == BusinessType.EMPLOYEE) {
+                                    profileName = "مصاريفي ومدخراتي الشخصية"
+                                    selectedGoals.addAll(listOf("بناء صندوق طوارئ يغطي 6 أشهر", "ترشيد المصاريف اليومية وتوفير 20%"))
+                                } else {
+                                    profileName = "مشروعي ونشاطي التجاري"
+                                    selectedGoals.addAll(listOf("المحافظة على السيولة ورفع الـ Runway لأكثر من 12 شهراً", "محاكاة قرارات التوظيف وشراء المعدات والتوسع"))
+                                }
+                            },
                             currency = baseCurrency,
                             onCurrencySelect = { baseCurrency = it }
                         )
-                        2 -> StepFinancialBaseline(
+                        2 -> StepAdaptiveBaseline(
+                            isEmployee = isEmployee,
                             capital = capitalInput,
                             onCapitalChange = { capitalInput = it },
                             revenue = revenueInput,
@@ -151,7 +182,8 @@ fun OnboardingScreen(
                             currency = baseCurrency
                         )
                         3 -> StepGoalsAndFinish(
-                            goals = availableGoals,
+                            isEmployee = isEmployee,
+                            goals = if (isEmployee) employeeGoals else businessGoals,
                             selectedGoals = selectedGoals,
                             onToggleGoal = { g ->
                                 if (selectedGoals.contains(g)) selectedGoals.remove(g) else selectedGoals.add(g)
@@ -184,12 +216,12 @@ fun OnboardingScreen(
                             if (currentStep < 3) {
                                 currentStep++
                             } else {
-                                val cap = capitalInput.toDoubleOrNull() ?: 9500.0
-                                val rev = revenueInput.toDoubleOrNull() ?: 3600.0
-                                val exp = expensesInput.toDoubleOrNull() ?: 2100.0
+                                val cap = capitalInput.toDoubleOrNull() ?: 12000.0
+                                val rev = revenueInput.toDoubleOrNull() ?: 4500.0
+                                val exp = expensesInput.toDoubleOrNull() ?: 2800.0
                                 onComplete(
-                                    businessName,
-                                    selectedBusinessType,
+                                    profileName,
+                                    selectedSituation,
                                     baseCurrency,
                                     cap,
                                     rev,
@@ -239,7 +271,7 @@ fun StepValueProposition(onNext: () -> Unit) {
         Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            text = "مرحباً بك في منصة مسار 2.0",
+            text = "مرحباً بك في مسار",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
@@ -248,7 +280,7 @@ fun StepValueProposition(onNext: () -> Unit) {
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "منصة ذكاء القرار المالي ومحاكاة مستقبل أعمالك بدقة علمية قبل اتخاذ أي خطوة.",
+            text = "مستشارك المالي الذكي لاتخاذ قرارات سليمة ومحاكاة مستقبلك المالي بأقل جهد.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -259,24 +291,24 @@ fun StepValueProposition(onNext: () -> Unit) {
 
         ValuePropCard(
             icon = Icons.Default.AutoAwesome,
-            title = "محاكي السيناريوهات (What-If)",
-            description = "جرب قرارات التوظيف، الشراء، أو رفع الأسعار وشاهد أثرها على السيولة قبل التنفيذ."
+            title = "محاكاة القرارات قبل اتخاذها",
+            description = "جرّب أثر شراء أصل، قرض، أو توظيف على رصيدك المستقبلي قبل دفع أي قرش."
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
         ValuePropCard(
             icon = Icons.Default.Speed,
-            title = "حساب الـ Runway ومعدل الحرق",
-            description = "محرك حسابي دقيق يوضح كم شهراً تستطيع الصمود وحساب نقاط الاسترداد (Payback)."
+            title = "فترة الأمان وصندوق الطوارئ",
+            description = "احسب كم شهراً تكفيك مدخراتك وسيولتك إذا انقطع الدخل أو ارتفعت النفقات."
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
         ValuePropCard(
             icon = Icons.Default.Psychology,
-            title = "مرشد الأعمال الذكي (اسأل مسار)",
-            description = "استشارات مالية مخصصة لتحليل قراراتك واكتشاف فرص ترشيد وتسييل الأصول."
+            title = "مرشد مالي ذكي واستباقي",
+            description = "يقترح عليك بنود التوفير وتسييل الأصول والخطوات العملية فوراً."
         )
     }
 }
@@ -311,11 +343,11 @@ fun ValuePropCard(icon: ImageVector, title: String, description: String) {
 }
 
 @Composable
-fun StepBusinessType(
-    businessName: String,
+fun StepAdaptiveSituation(
+    profileName: String,
     onNameChange: (String) -> Unit,
-    selectedType: BusinessType,
-    onTypeSelect: (BusinessType) -> Unit,
+    selectedSituation: BusinessType,
+    onSituationSelect: (BusinessType) -> Unit,
     currency: String,
     onCurrencySelect: (String) -> Unit
 ) {
@@ -325,12 +357,12 @@ fun StepBusinessType(
             .verticalScroll(rememberScrollState())
     ) {
         Text(
-            text = "هوية ونوع النشاط",
+            text = "هدفك ووضعك المالي",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = "حدد طبيعة عملك لتخصيص حسابات المحاكاة والتقييم.",
+            text = "اختر وضعك المالي لتتكيف واجهات مسار ومحركاته مع أهدافك الحقيقية.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -338,73 +370,75 @@ fun StepBusinessType(
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
-            value = businessName,
+            value = profileName,
             onValueChange = onNameChange,
-            label = { Text("اسم المشروع أو النشاط") },
+            label = { Text("اسم الملف المالي أو النشاط") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
         Text(
-            text = "نوع العمل التجاري:",
+            text = "اختر طبيعة وضعك المالي:",
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold
         )
 
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Situation 1: Employee / Personal
+        SituationCard(
+            title = "موظف / إدارة مالية شخصية",
+            subtitle = "أدوات مخصصة للراتب الشهري، ضبط المصاريف، بناء صندوق طوارئ، والادخار.",
+            icon = Icons.Default.Badge,
+            isSelected = selectedSituation == BusinessType.EMPLOYEE,
+            onClick = { onSituationSelect(BusinessType.EMPLOYEE) }
+        )
+
         Spacer(modifier = Modifier.height(8.dp))
 
-        val types = BusinessType.values().take(8)
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            types.chunked(2).forEach { row ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    row.forEach { type ->
-                        val isSelected = selectedType == type
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
-                            ),
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { onTypeSelect(type) }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                if (isSelected) {
-                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                                }
-                                Text(
-                                    text = type.titleAr,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        // Situation 2: Freelancer
+        SituationCard(
+            title = "عمل حر / مستقل (Freelancer)",
+            subtitle = "دخل متغير، تسعير خدمات، إدارة فترات الركود، وحماية السيولة.",
+            icon = Icons.Default.Laptop,
+            isSelected = selectedSituation == BusinessType.FREELANCER,
+            onClick = { onSituationSelect(BusinessType.FREELANCER) }
+        )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Situation 3: Business / Store / Startup
+        SituationCard(
+            title = "صاحب مشروع / نشاط تجاري",
+            subtitle = "إيرادات، تكاليف تشغيل، حساب فترة الـ Runway، أصول، ومحاكاة التوظيف.",
+            icon = Icons.Default.ShoppingBag,
+            isSelected = selectedSituation == BusinessType.STORE || selectedSituation == BusinessType.STARTUP,
+            onClick = { onSituationSelect(BusinessType.STORE) }
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Situation 4: Investor
+        SituationCard(
+            title = "مستثمر / أصول وعقارات",
+            subtitle = "عائد على الاستثمار (ROI)، إدارة السيولة، تقييم وتسييل الأصول المجمدة.",
+            icon = Icons.Default.MonetizationOn,
+            isSelected = selectedSituation == BusinessType.INVESTOR,
+            onClick = { onSituationSelect(BusinessType.INVESTOR) }
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            text = "العملة الأساسية للحسابات:",
+            text = "العملة الأساسية:",
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(8.dp))
 
-        val currencies = listOf("USD" to "دولار أمريكي ($)", "SAR" to "ريال سعودي (ر.س)", "AED" to "درهم إماراتي (د.إ)", "EGP" to "جنيه مصري (ج.م)")
+        val currencies = listOf("USD" to "دولار ($)", "SAR" to "ريال (ر.س)", "AED" to "درهم (د.إ)", "EGP" to "جنيه (ج.م)")
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -414,7 +448,7 @@ fun StepBusinessType(
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = if (isSelected) MasarEmerald.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) MasarEmerald else MaterialTheme.colorScheme.outlineVariant),
+                    border = BorderStroke(1.dp, if (isSelected) MasarEmerald else MaterialTheme.colorScheme.outlineVariant),
                     modifier = Modifier
                         .weight(1f)
                         .clickable { onCurrencySelect(code) }
@@ -434,7 +468,75 @@ fun StepBusinessType(
 }
 
 @Composable
-fun StepFinancialBaseline(
+private fun SituationCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f) else MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
+            if (isSelected) 1.5.dp else 1.dp,
+            if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 16.sp
+                )
+            }
+
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun StepAdaptiveBaseline(
+    isEmployee: Boolean,
     capital: String,
     onCapitalChange: (String) -> Unit,
     revenue: String,
@@ -449,12 +551,12 @@ fun StepFinancialBaseline(
             .verticalScroll(rememberScrollState())
     ) {
         Text(
-            text = "خط الأساس المالي",
+            text = if (isEmployee) "أرقامك المالية الأساسية" else "خط الأساس المالي للنشاط",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = "أدخل أرقامك الحالية (فعلية أو تقديرية) لبناء نموذج المحاكاة الأولي.",
+            text = if (isEmployee) "أدخل رصيدك الحالي وراتبك ومصاريفك التقديرية لبناء خطة الادخار." else "أدخل السيولة المتاحة والإيرادات وتكاليف التشغيل لحساب الـ Runway.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -464,7 +566,7 @@ fun StepFinancialBaseline(
         OutlinedTextField(
             value = capital,
             onValueChange = onCapitalChange,
-            label = { Text("الرصيد النقدي المتاح حالياً (Cash)") },
+            label = { Text(if (isEmployee) "الرصيد والمدخرات المتاحة حالياً (الكاش)" else "السيولة النقدية المتاحة (Cash)") },
             suffix = { Text(currency) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
@@ -475,7 +577,7 @@ fun StepFinancialBaseline(
         OutlinedTextField(
             value = revenue,
             onValueChange = onRevenueChange,
-            label = { Text("متوسط الإيراد الشهري") },
+            label = { Text(if (isEmployee) "الراتب / إجمالي الدخل الشهري" else "متوسط الإيراد والمبيعات الشهرية") },
             suffix = { Text("$currency/شهر") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
@@ -486,7 +588,7 @@ fun StepFinancialBaseline(
         OutlinedTextField(
             value = expenses,
             onValueChange = onExpensesChange,
-            label = { Text("متوسط المصروفات الشهرية") },
+            label = { Text(if (isEmployee) "المصروفات والالتزامات الشهرية" else "تكاليف التشغيل والمصروفات الشهرية") },
             suffix = { Text("$currency/شهر") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
@@ -499,7 +601,7 @@ fun StepFinancialBaseline(
         val revVal = revenue.toDoubleOrNull() ?: 0.0
         val expVal = expenses.toDoubleOrNull() ?: 0.0
         val net = revVal - expVal
-        val runway = if (net < 0) capVal / -net else 999.0
+        val runway = if (expVal > 0) capVal / expVal else 999.0
 
         Surface(
             shape = RoundedCornerShape(14.dp),
@@ -508,7 +610,7 @@ fun StepFinancialBaseline(
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
-                    text = "المؤشرات الأولية المحسوبة:",
+                    text = "المؤشرات المبدئية لحالتك:",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -517,8 +619,17 @@ fun StepFinancialBaseline(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "صافي التدفق: ${String.format("%+,.0f", net)} $currency/ش", style = MaterialTheme.typography.bodySmall, color = if (net >= 0) MasarEmerald else Color(0xFFEF4444))
-                    Text(text = "الـ Runway: ${if (runway >= 900) "مستدام (+)" else "${String.format("%.1f", runway)} شهر"}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = if (isEmployee) "فائض الادخار: ${String.format("%+,.0f", net)} $currency/ش" else "صافي التدفق: ${String.format("%+,.0f", net)} $currency/ش",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (net >= 0) MasarEmerald else Color(0xFFEF4444),
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "كفاية المدخرات: ${String.format("%.1f", runway)} أشهر",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -527,6 +638,7 @@ fun StepFinancialBaseline(
 
 @Composable
 fun StepGoalsAndFinish(
+    isEmployee: Boolean,
     goals: List<String>,
     selectedGoals: List<String>,
     onToggleGoal: (String) -> Unit
@@ -537,12 +649,12 @@ fun StepGoalsAndFinish(
             .verticalScroll(rememberScrollState())
     ) {
         Text(
-            text = "أهدافك المالية والاستراتيجية",
+            text = "أهدافك ذات الأولوية",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = "اختر ما ترغب بالتركيز عليه ليقترح المحاكي البدائل المناسبة:",
+            text = "اختر ما ترغب بالتركيز عليه ليقترح مسار الإجراءات والحلول الأنسب:",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -554,7 +666,7 @@ fun StepGoalsAndFinish(
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-                border = androidx.compose.foundation.BorderStroke(
+                border = BorderStroke(
                     1.dp,
                     if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
                 ),

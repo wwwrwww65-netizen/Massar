@@ -13,17 +13,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Savings
-import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -39,23 +38,25 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.domain.engine.ScenarioEngine
-import com.example.domain.model.ScenarioParameters
+import com.example.domain.model.BusinessType
+import com.example.domain.model.UserProfile
 import com.example.ui.theme.MasarEmerald
 import com.example.ui.theme.MasarGold
 import com.example.ui.theme.MasarSky
 import com.example.ui.viewmodel.AppScreen
 
 /**
- * Task-Oriented Quick Action Grid: "ماذا تريد أن تفعل الآن؟"
- * Connects user goals directly to the relevant simplified sub-flows.
+ * Task-Oriented Direct Action Buttons:
+ * Concrete verbs: "خفّض مصاريفك", "حاكي شراء الأصل", "حسّن السيولة", "تسييل أصل"
  */
 @Composable
 fun TaskOrientedActionGrid(
+    profile: UserProfile,
     onNavigate: (AppScreen) -> Unit,
-    onSelectScenario: (ScenarioParameters) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isEmployee = profile.businessType == BusinessType.EMPLOYEE
+
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -69,13 +70,13 @@ fun TaskOrientedActionGrid(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "ماذا تريد أن تفعل الآن؟",
+                    text = "قرارات وإجراءات مباشرة بنقرة واحدة",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "إجراءات مباشرة",
+                    text = "اختر ما تريده",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -84,39 +85,43 @@ fun TaskOrientedActionGrid(
             Spacer(modifier = Modifier.height(14.dp))
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                // Action 1: Test a decision / Purchase
-                QuickActionRowItem(
-                    title = "أفكر في قرار مالي أو شراء أصل",
-                    subtitle = "احسب أثر الشراء أو التوظيف على رصيدك المستقبلي فوراً",
-                    icon = Icons.Default.AutoAwesome,
-                    iconTint = MasarSky,
-                    onClick = { onNavigate(AppScreen.SIMULATOR) }
-                )
-
-                // Action 2: Optimize & Cut unnecessary expenses
-                QuickActionRowItem(
-                    title = "أريد ترشيد مصاريفي وتوفير سيولة",
-                    subtitle = "اكتشف الهدر واعرف كم شهراً إضافياً ستكسبه بتوفير ذكي",
+                // Button 1: Optimize expenses
+                DirectActionButton(
+                    actionVerb = "خفّض مصاريفك ووفر سيولة",
+                    description = if (isEmployee) "اكتشف بنود الصرف الزائدة ووفر 15-20% من راتبك" else "خطة ترشيد تكاليف التشغيل وإيقاف الهدر المالي",
                     icon = Icons.Default.Savings,
-                    iconTint = MasarEmerald,
+                    accentColor = MasarEmerald,
+                    buttonLabel = "ترشيد الآن",
                     onClick = { onNavigate(AppScreen.BOOTSTRAPPING) }
                 )
 
-                // Action 3: Monetize & Value Assets
-                QuickActionRowItem(
-                    title = "أريد تقييم أصولي وتحويلها لنقد",
-                    subtitle = "احسب قيمة مشاريعك أو مقتنياتك واستكشف خيارات بيعها",
+                // Button 2: Simulate Purchase / Expansion
+                DirectActionButton(
+                    actionVerb = if (isEmployee) "حاكي شراء أصل كبير (سيارة/عقار/أجهزة)" else "حاكي التوسع وشراء الأصول والمعدات",
+                    description = "شاهد أثر الشراء أو التقسيط على رصيدك المستقبلي قبل دفع أي قرش",
+                    icon = Icons.Default.AutoAwesome,
+                    accentColor = MasarSky,
+                    buttonLabel = "محاكاة الشراء",
+                    onClick = { onNavigate(AppScreen.SIMULATOR) }
+                )
+
+                // Button 3: Monetize & Value Assets
+                DirectActionButton(
+                    actionVerb = "تسييل أصل أو استغلال ممتلكاتك",
+                    description = if (profile.hasFrozenAssets) "لديك أصول مجمدة، استكشف طرق بيعها أو تأجيرها لضخ نقد" else "قيّم مقتنياتك أو مهاراتك وافتح مصادر دخل إضافية",
                     icon = Icons.Default.MonetizationOn,
-                    iconTint = MasarGold,
+                    accentColor = MasarGold,
+                    buttonLabel = "تسييل الأصول",
                     onClick = { onNavigate(AppScreen.ASSETS) }
                 )
 
-                // Action 4: Ask Masar Advisor
-                QuickActionRowItem(
-                    title = "استشارة مرشد الأعمال الذكي",
-                    subtitle = "اطرح أي استفسار تجاري أو مالي واحصل على خطة عملية مخصصة",
-                    icon = Icons.Default.Psychology,
-                    iconTint = MaterialTheme.colorScheme.primary,
+                // Button 4: Improve liquidity & emergency fund
+                DirectActionButton(
+                    actionVerb = if (isEmployee) "حسّن الأمان المالي وصندوق الطوارئ" else "حسّن السيولة وزد فترة الـ Runway",
+                    description = "توصيات علمية لرفع أشهر الصمود المالي وتأمين مستقبلك",
+                    icon = Icons.Default.TrendingUp,
+                    accentColor = MaterialTheme.colorScheme.primary,
+                    buttonLabel = "تحسين السيولة",
                     onClick = { onNavigate(AppScreen.ADVISOR) }
                 )
             }
@@ -125,16 +130,18 @@ fun TaskOrientedActionGrid(
 }
 
 @Composable
-private fun QuickActionRowItem(
-    title: String,
-    subtitle: String,
+private fun DirectActionButton(
+    actionVerb: String,
+    description: String,
     icon: ImageVector,
-    iconTint: Color,
+    accentColor: Color,
+    buttonLabel: String,
     onClick: () -> Unit
 ) {
     Surface(
         shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
@@ -150,39 +157,49 @@ private fun QuickActionRowItem(
                 modifier = Modifier
                     .size(42.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(iconTint.copy(alpha = 0.15f)),
+                    .background(accentColor.copy(alpha = 0.16f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = iconTint,
+                    tint = accentColor,
                     modifier = Modifier.size(22.dp)
                 )
             }
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = title,
+                    text = actionVerb,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = subtitle,
+                    text = description,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 16.sp
                 )
             }
 
-            Icon(
-                imageVector = Icons.Default.ArrowForward,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.size(16.dp)
-            )
+            Button(
+                onClick = onClick,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = accentColor.copy(alpha = 0.15f),
+                    contentColor = accentColor
+                ),
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                modifier = Modifier.height(34.dp)
+            ) {
+                Text(
+                    text = buttonLabel,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }

@@ -113,6 +113,9 @@ class MainActivity : ComponentActivity() {
                                 state = state,
                                 onNavigate = { viewModel.navigateTo(it) },
                                 onSendMessage = { viewModel.sendAdvisorMessage(it) },
+                                onStartNewChat = { viewModel.startNewChat() },
+                                onSwitchChatSession = { viewModel.switchChatSession(it) },
+                                onDeleteChatSession = { viewModel.deleteChatSession(it) },
                                 onClearChat = { viewModel.clearChat() }
                             )
 

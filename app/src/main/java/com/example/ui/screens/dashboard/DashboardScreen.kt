@@ -34,6 +34,7 @@ import com.example.domain.model.ScenarioParameters
 import com.example.ui.components.MasarBottomNavigation
 import com.example.ui.components.MasarHeader
 import com.example.ui.components.MasarRtlProvider
+import com.example.ui.components.PrimaryHeroActionCard
 import com.example.ui.components.SimpleCashStatusCard
 import com.example.ui.components.SimpleProjectionsSection
 import com.example.ui.components.SimpleSmartAdviceCard
@@ -45,8 +46,11 @@ import com.example.ui.viewmodel.MasarUiState
 
 /**
  * Redesigned Dashboard Screen:
- * Simple on the outside, powerful inside.
- * Follows Progressive Disclosure and Task-Oriented Design.
+ * Simple on the outside, complex deterministic intelligence in the background.
+ * Features:
+ * 1. "ماذا أفعل الآن؟" Primary Hero Action Card
+ * 2. Accessible Cash Status with explicit text and dynamic profile adaptation
+ * 3. Direct Verb Buttons (خفّض مصاريفك, حاكي شراء الأصل, حسّن السيولة, تسييل أصل)
  */
 @Composable
 fun DashboardScreen(
@@ -96,26 +100,37 @@ fun DashboardScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 1. Primary Simple Cash & Health Card with Progressive Disclosure
+                // 1. "ماذا أفعل الآن؟" - Primary Hero Recommendation Card
+                item {
+                    PrimaryHeroActionCard(
+                        profile = state.profile,
+                        metrics = state.metrics,
+                        currencySymbol = state.currencySymbol,
+                        onNavigate = onNavigate
+                    )
+                }
+
+                // 2. Primary Cash & Health Card with explicit accessible text + adaptivity
                 item {
                     SimpleCashStatusCard(
+                        profile = state.profile,
                         metrics = state.metrics,
                         currencySymbol = state.currencySymbol
                     )
                 }
 
-                // 2. Task-Oriented Action Grid: "ماذا تريد أن تفعل الآن؟"
+                // 3. Task-Oriented Action Grid: Direct Concrete Verbs (خفّض مصاريفك، حاكي، تسييل)
                 item {
                     TaskOrientedActionGrid(
-                        onNavigate = onNavigate,
-                        onSelectScenario = onSelectScenario
+                        profile = state.profile,
+                        onNavigate = onNavigate
                     )
                 }
 
-                // 3. Quick Decision Ideas Carousel
+                // 4. Quick Decision Ideas Carousel
                 item {
                     Text(
-                        text = "قرارات يمكنك تجربتها فوراً بنقرة واحدة:",
+                        text = "محاكاة قرارات بنقرة واحدة:",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -137,7 +152,7 @@ fun DashboardScreen(
                     }
                 }
 
-                // 4. Simple Smart Advice Card (Translates complex risks into human action items)
+                // 5. Simple Smart Advice Card (Translates complex risks into human action items)
                 item {
                     SimpleSmartAdviceCard(
                         riskBreakdown = state.riskBreakdown,
@@ -145,7 +160,7 @@ fun DashboardScreen(
                     )
                 }
 
-                // 5. Simple Projections Section (Expandable 12-month graph)
+                // 6. Simple Projections Section (Expandable 12-month graph)
                 item {
                     SimpleProjectionsSection(
                         points = state.forecastPoints,

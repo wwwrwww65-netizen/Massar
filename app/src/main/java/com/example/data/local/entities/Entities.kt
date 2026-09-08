@@ -22,6 +22,9 @@ data class UserProfileEntity(
     val currentCapital: Double,
     val monthlyRevenue: Double,
     val monthlyExpenses: Double,
+    val hasFrozenAssets: Boolean = false,
+    val frozenAssetsValue: Double = 0.0,
+    val incomeSourceDescription: String = "راتب شهري ثابت",
     val selectedGoals: String, // Comma separated
     val onboardingCompleted: Boolean,
     val isPro: Boolean
@@ -115,6 +118,7 @@ data class SavedScenarioEntity(
 @Entity(tableName = "chat_messages")
 data class ChatMessageEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val conversationId: String = "default_session",
     val sender: String, // "user" or "advisor"
     val content: String,
     val timestamp: Long = System.currentTimeMillis(),

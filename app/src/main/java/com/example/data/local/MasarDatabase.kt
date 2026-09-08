@@ -27,7 +27,7 @@ import com.example.data.local.entities.UserProfileEntity
         ChatMessageEntity::class,
         AuditLogEntity::class
     ],
-    version = 1,
+    version = 3,
     exportSchema = false
 )
 abstract class MasarDatabase : RoomDatabase() {

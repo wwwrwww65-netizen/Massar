@@ -34,10 +34,19 @@ import kotlinx.coroutines.flow.map
 
 data class ChatMessage(
     val id: Long = 0,
+    val conversationId: String = "default_session",
     val sender: String,
     val content: String,
     val timestamp: Long = System.currentTimeMillis(),
     val isHelpful: Boolean? = null
+)
+
+data class ChatSession(
+    val id: String,
+    val title: String,
+    val lastMessage: String,
+    val timestamp: Long,
+    val messageCount: Int
 )
 
 class MasarRepository(private val dao: MasarDao) {
@@ -49,11 +58,14 @@ class MasarRepository(private val dao: MasarDao) {
                 UserProfile(
                     id = it.id,
                     businessName = it.businessName,
-                    businessType = try { BusinessType.valueOf(it.businessType) } catch (e: Exception) { BusinessType.FREELANCER },
+                    businessType = try { BusinessType.valueOf(it.businessType) } catch (e: Exception) { BusinessType.EMPLOYEE },
                     baseCurrency = it.baseCurrency,
                     currentCapital = it.currentCapital,
                     monthlyRevenue = it.monthlyRevenue,
                     monthlyExpenses = it.monthlyExpenses,
+                    hasFrozenAssets = it.hasFrozenAssets,
+                    frozenAssetsValue = it.frozenAssetsValue,
+                    incomeSourceDescription = it.incomeSourceDescription,
                     selectedGoals = it.selectedGoals.split(",").filter { g -> g.isNotBlank() },
                     onboardingCompleted = it.onboardingCompleted,
                     isPro = it.isPro
@@ -71,12 +83,15 @@ class MasarRepository(private val dao: MasarDao) {
             currentCapital = profile.currentCapital,
             monthlyRevenue = profile.monthlyRevenue,
             monthlyExpenses = profile.monthlyExpenses,
+            hasFrozenAssets = profile.hasFrozenAssets,
+            frozenAssetsValue = profile.frozenAssetsValue,
+            incomeSourceDescription = profile.incomeSourceDescription,
             selectedGoals = profile.selectedGoals.joinToString(","),
             onboardingCompleted = profile.onboardingCompleted,
             isPro = profile.isPro
         )
         dao.insertOrUpdateProfile(entity)
-        logAction("تحديث الملف الشخصي", "تم تحديث الرصيد ${profile.currentCapital} ${profile.baseCurrency}")
+        logAction("تحديث الملف الشخصي", "تم تحديث البيانات المالية: ${profile.businessType.titleAr} - ${profile.currentCapital} ${profile.baseCurrency}")
     }
 
     // Transactions
@@ -348,6 +363,7 @@ class MasarRepository(private val dao: MasarDao) {
             list.map {
                 ChatMessage(
                     id = it.id,
+                    conversationId = it.conversationId,
                     sender = it.sender,
                     content = it.content,
                     timestamp = it.timestamp,
@@ -357,16 +373,38 @@ class MasarRepository(private val dao: MasarDao) {
         }
     }
 
+    fun getChatSessions(): Flow<List<ChatSession>> {
+        return dao.getAllChatMessages().map { messages ->
+            messages.groupBy { it.conversationId }
+                .map { (convId, msgList) ->
+                    val firstUserMsg = msgList.firstOrNull { it.sender == "user" }?.content
+                        ?.take(45) ?: "جلسة استشارة مسار"
+                    val lastMsg = msgList.lastOrNull()?.content?.take(60) ?: ""
+                    val latestTime = msgList.maxOfOrNull { it.timestamp } ?: System.currentTimeMillis()
+                    ChatSession(
+                        id = convId,
+                        title = firstUserMsg,
+                        lastMessage = lastMsg,
+                        timestamp = latestTime,
+                        messageCount = msgList.size
+                    )
+                }
+                .sortedByDescending { it.timestamp }
+        }
+    }
+
     suspend fun sendChatMessage(
         content: String,
+        conversationId: String,
         profile: UserProfile,
         metrics: FinancialMetrics
     ): String {
-        // Fetch recent history before adding the new message
-        val historyEntities = dao.getChatHistoryList()
+        // Fetch recent history for this conversation before adding the new message
+        val historyEntities = dao.getChatHistoryList(conversationId)
         val history = historyEntities.map {
             ChatMessage(
                 id = it.id,
+                conversationId = it.conversationId,
                 sender = it.sender,
                 content = it.content,
                 timestamp = it.timestamp,
@@ -375,7 +413,13 @@ class MasarRepository(private val dao: MasarDao) {
         }
 
         // Save user message
-        dao.insertChatMessage(ChatMessageEntity(sender = "user", content = content))
+        dao.insertChatMessage(
+            ChatMessageEntity(
+                conversationId = conversationId,
+                sender = "user",
+                content = content
+            )
+        )
 
         // Get AI advisor reply from Gemini (or fallback engine)
         val reply = GeminiService.askAdvisor(
@@ -386,9 +430,19 @@ class MasarRepository(private val dao: MasarDao) {
         )
 
         // Save advisor response
-        dao.insertChatMessage(ChatMessageEntity(sender = "advisor", content = reply))
+        dao.insertChatMessage(
+            ChatMessageEntity(
+                conversationId = conversationId,
+                sender = "advisor",
+                content = reply
+            )
+        )
 
         return reply
+    }
+
+    suspend fun deleteChatSession(conversationId: String) {
+        dao.deleteChatByConversation(conversationId)
     }
 
     suspend fun clearChat() {

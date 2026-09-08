@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
@@ -39,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -53,7 +55,7 @@ import com.example.ui.theme.MasarSky
 /**
  * Simplified, Human-Friendly Decision Intelligence Report.
  * Delivers an immediate "Bottom Line" recommendation in simple language first.
- * Technical breakdown (Pros, Cons, Alternatives, Risk Scores) is accessible via Progressive Disclosure.
+ * High-contrast container styling with distinct visual boundaries.
  */
 @Composable
 fun SimpleDecisionReportCard(
@@ -64,17 +66,25 @@ fun SimpleDecisionReportCard(
     var showFullBreakdown by remember { mutableStateOf(false) }
 
     Card(
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        border = BorderStroke(1.5.dp, MasarEmerald.copy(alpha = 0.35f)),
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            MasarEmerald.copy(alpha = 0.08f),
+                            Color.Transparent
+                        )
+                    )
+                )
                 .padding(18.dp)
         ) {
             // Header
@@ -85,13 +95,13 @@ fun SimpleDecisionReportCard(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(38.dp)
                             .clip(CircleShape)
-                            .background(MasarEmerald.copy(alpha = 0.15f)),
+                            .background(MasarEmerald.copy(alpha = 0.2f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -104,9 +114,10 @@ fun SimpleDecisionReportCard(
 
                     Column {
                         Text(
-                            text = "خلاصة تحليل القرار",
+                            text = "خلاصة تحليل القرار والذكاء المالي",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = analysis.decisionTitle,
@@ -117,15 +128,15 @@ fun SimpleDecisionReportCard(
                 }
 
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MasarEmerald.copy(alpha = 0.15f)
+                    shape = RoundedCornerShape(10.dp),
+                    color = MasarEmerald,
                 ) {
                     Text(
-                        text = "ثقة ${analysis.confidenceScore}%",
+                        text = "دقة ${analysis.confidenceScore}%",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MasarEmerald,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
                 }
             }
@@ -134,20 +145,20 @@ fun SimpleDecisionReportCard(
 
             // Highlighted Plain-Language Recommendation (Bottom-Line)
             Surface(
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(16.dp),
                 color = MasarEmerald.copy(alpha = 0.12f),
-                border = BorderStroke(1.dp, MasarEmerald.copy(alpha = 0.4f)),
+                border = BorderStroke(1.5.dp, MasarEmerald.copy(alpha = 0.5f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MasarEmerald, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MasarEmerald, modifier = Modifier.size(20.dp))
                         Text(
                             text = "التوصية المباشرة:",
-                            style = MaterialTheme.typography.labelMedium,
+                            style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MasarEmerald
                         )
@@ -167,90 +178,101 @@ fun SimpleDecisionReportCard(
 
             // Plain-Language Financial Impact Summary
             Surface(
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(14.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
+                Column(modifier = Modifier.padding(14.dp)) {
                     Text(
                         text = "الأثر المالي المباشر:",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = analysis.financialOutcomeSummary,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface,
-                        lineHeight = 18.sp
+                        lineHeight = 20.sp
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Progressive Disclosure Toggle
-            Row(
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
                     .clickable { showFullBreakdown = !showFullBreakdown }
-                    .padding(vertical = 6.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = if (showFullBreakdown) "إخفاء التفاصيل والبدائل المقترحة" else "عرض مقارنة البدائل والإيجابيات والمخاطر",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Icon(
-                    imageVector = if (showFullBreakdown) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
-                )
+                Row(
+                    modifier = Modifier.padding(vertical = 10.dp, horizontal = 14.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (showFullBreakdown) "إخفاء التفاصيل والبدائل المقترحة" else "عرض مقارنة البدائل والإيجابيات والمخاطر",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Icon(
+                        imageVector = if (showFullBreakdown) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
 
             // Expanded In-Depth Analysis
             AnimatedVisibility(visible = showFullBreakdown) {
-                Column(modifier = Modifier.padding(top = 10.dp)) {
+                Column(modifier = Modifier.padding(top = 14.dp)) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                    // Pros & Cons
+                    // Pros & Cons with distinct green & red container tinting
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Pros
+                        // Pros Box (Green Tint)
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            shape = RoundedCornerShape(14.dp),
+                            color = MasarEmerald.copy(alpha = 0.08f),
+                            border = BorderStroke(1.dp, MasarEmerald.copy(alpha = 0.35f)),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Column(modifier = Modifier.padding(10.dp)) {
+                            Column(modifier = Modifier.padding(12.dp)) {
                                 Text("الإيجابيات:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MasarEmerald)
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(6.dp))
                                 analysis.pros.take(3).forEach { pro ->
-                                    Text("✓ $pro", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("✓ $pro", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface, lineHeight = 18.sp)
+                                    Spacer(modifier = Modifier.height(4.dp))
                                 }
                             }
                         }
 
-                        // Cons / Risks
+                        // Cons / Risks Box (Red Tint)
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            shape = RoundedCornerShape(14.dp),
+                            color = MasarRose.copy(alpha = 0.08f),
+                            border = BorderStroke(1.dp, MasarRose.copy(alpha = 0.35f)),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Column(modifier = Modifier.padding(10.dp)) {
+                            Column(modifier = Modifier.padding(12.dp)) {
                                 Text("المخاطر والعيوب:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MasarRose)
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(6.dp))
                                 (analysis.cons + analysis.risks).take(3).forEach { risk ->
-                                    Text("⚠ $risk", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("⚠ $risk", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface, lineHeight = 18.sp)
+                                    Spacer(modifier = Modifier.height(4.dp))
                                 }
                             }
                         }
@@ -258,36 +280,45 @@ fun SimpleDecisionReportCard(
 
                     // Alternatives (if any)
                     if (analysis.alternatives.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
                         Text(
                             text = "البدائل الذكية المتاحة:",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             analysis.alternatives.forEach { alt ->
                                 Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MasarSky.copy(alpha = 0.06f),
+                                    border = BorderStroke(1.dp, MasarSky.copy(alpha = 0.3f)),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Column(modifier = Modifier.padding(10.dp)) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(text = alt.title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                                            Text(
-                                                text = if (alt.initialCost > 0) "تكلفة: ${alt.initialCost.toInt()} $currencySymbol" else "بدون تكلفة أولية",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MasarSky
-                                            )
+                                            Text(text = alt.title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = MasarSky.copy(alpha = 0.15f)
+                                            ) {
+                                                Text(
+                                                    text = if (alt.initialCost > 0) "تكلفة: ${alt.initialCost.toInt()} $currencySymbol" else "بدون تكلفة أولية",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MasarSky,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
+                                            }
                                         }
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(text = alt.recommendationReason, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(text = alt.recommendationReason, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 18.sp)
                                     }
                                 }
                             }

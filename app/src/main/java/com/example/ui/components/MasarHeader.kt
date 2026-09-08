@@ -12,9 +12,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
@@ -117,11 +119,21 @@ fun MasarHeader(
                     }
                 }
 
-                // Quick Navigation Actions (Bootstrapping, Reports, Settings, Diagnostics)
+                // Quick Navigation Actions (Assets, Bootstrapping, Reports, Settings)
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    IconButton(
+                        onClick = { onNavigate(AppScreen.ASSETS) }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MonetizationOn,
+                            contentDescription = "الأصول والتقييم والتسييل",
+                            tint = if (currentScreen == AppScreen.ASSETS) MasarGold else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
                     IconButton(
                         onClick = { onNavigate(AppScreen.BOOTSTRAPPING) }
                     ) {

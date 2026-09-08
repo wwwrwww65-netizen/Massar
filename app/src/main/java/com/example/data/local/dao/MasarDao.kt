@@ -109,11 +109,20 @@ interface MasarDao {
     @Query("SELECT * FROM chat_messages ORDER BY timestamp ASC")
     fun getAllChatMessages(): Flow<List<ChatMessageEntity>>
 
+    @Query("SELECT * FROM chat_messages WHERE conversationId = :conversationId ORDER BY timestamp ASC")
+    fun getChatMessagesByConversation(conversationId: String): Flow<List<ChatMessageEntity>>
+
+    @Query("SELECT * FROM chat_messages WHERE conversationId = :conversationId ORDER BY timestamp ASC")
+    suspend fun getChatHistoryList(conversationId: String): List<ChatMessageEntity>
+
     @Query("SELECT * FROM chat_messages ORDER BY timestamp ASC")
-    suspend fun getChatHistoryList(): List<ChatMessageEntity>
+    suspend fun getAllChatHistoryList(): List<ChatMessageEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertChatMessage(message: ChatMessageEntity): Long
+
+    @Query("DELETE FROM chat_messages WHERE conversationId = :conversationId")
+    suspend fun deleteChatByConversation(conversationId: String)
 
     @Query("DELETE FROM chat_messages")
     suspend fun deleteAllChatMessages()

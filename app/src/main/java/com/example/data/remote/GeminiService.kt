@@ -57,11 +57,14 @@ data class GeminiResponse(
 
 object GeminiService {
     private const val TAG = "GeminiService"
-    // Preferred Gemini models in priority order
+    private const val DEFAULT_FALLBACK_API_KEY = ""
+
+    // Preferred Gemini models in priority order verified with API key
     private val MODELS_TO_TRY = listOf(
-        "gemini-2.5-flash",
-        "gemini-2.5-flash-lite",
-        "gemini-3.5-flash",
+        "gemini-3.1-flash-lite",
+        "gemini-3.8-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash-lite",
         "gemini-flash-latest"
     )
     private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
@@ -94,7 +97,7 @@ object GeminiService {
         if (!buildKey.isNullOrBlank() && buildKey != "MY_GEMINI_API_KEY") {
             return buildKey.trim()
         }
-        return ""
+        return DEFAULT_FALLBACK_API_KEY
     }
 
     suspend fun askAdvisor(
@@ -122,68 +125,73 @@ object GeminiService {
 
         if (apiKey.isNotBlank()) {
             val systemInstructionText = """
-                أنت 'مرشد مسار الذكي' (MASAR AI Advisor)، مستشار مالي وتجاري واستراتيجي خبير وودود لمساعدة رواد الأعمال والمستقلين.
+                أنت 'مرشد مسار الذكي' (MASAR AI Advisor)، مستشار مالي وتجاري واستراتيجي خبير وودود لمساعدة الأفراد، الموظفين، وأصحاب الأعمال والمشاريع.
                 
-                بيانات المستخدم المالية الحالية في مسار:
-                - اسم النشاط: ${profile.businessName}
-                - نوع النشاط: ${profile.businessType.titleAr}
+                الملف المالي للمستخدم في مسار:
+                - الاسم / النشاط: ${profile.businessName}
+                - الوضع المهني / نوع الحساب: ${profile.businessType.titleAr}
+                - طبيعة ومصدر الدخل: ${profile.incomeSourceDescription}
                 - العملة الأساسية: ${profile.baseCurrency}
-                - الرصيد النقدي الفعلي الحالي: ${metrics.currentBalance} ${profile.baseCurrency}
-                - إجمالي الإيرادات الشهرية: ${metrics.totalMonthlyRevenue} ${profile.baseCurrency}
-                - إجمالي المصروفات الشهرية: ${metrics.totalMonthlyExpenses} ${profile.baseCurrency}
-                - صافي التدفق النقدي الشهري: ${metrics.netMonthlyCashFlow} ${profile.baseCurrency}
-                - فترة الأمان المالي (Runway): ${if (metrics.runwayMonths >= 900) "فائقة الأمان ومستدامة (تدفق إيجابي)" else "${metrics.runwayMonths} أشهر"}
+                - الرصيد النقدي والمدخرات السائلة المتاحة فوراً: ${metrics.currentBalance} ${profile.baseCurrency}
+                - إجمالي الدخل الشهري (راتب / إيرادات): ${metrics.totalMonthlyRevenue} ${profile.baseCurrency}
+                - إجمالي المصروفات والالتزامات الشهرية: ${metrics.totalMonthlyExpenses} ${profile.baseCurrency}
+                - صافي الفائض / التدفق النقدي الشهري: ${metrics.netMonthlyCashFlow} ${profile.baseCurrency}
+                - فترة الأمان المالي / صندوق الطوارئ (Runway): ${if (metrics.runwayMonths >= 900) "فائقة الأمان ومستدامة (دخل يغطي المصاريف)" else "${metrics.runwayMonths} أشهر"}
+                - حالة الأصول المجمدة: ${if (profile.hasFrozenAssets) "يوجد أصول مجمدة غير قابلة للتسييل السريع بقيمة تقريبية ${profile.frozenAssetsValue} ${profile.baseCurrency}" else "لا توجد أصول مجمدة، الأصول سائلة"}
                 - نسبة المصاريف الثابتة: ${metrics.fixedExpensesRatio}%
-                - مستوى المخاطر: ${metrics.overallRiskLevel.titleAr}
-                - الأهداف: ${profile.selectedGoals.joinToString("، ")}
+                - مستوى المخاطر العام: ${metrics.overallRiskLevel.titleAr}
+                - الأهداف المالية المحددة: ${profile.selectedGoals.joinToString("، ")}
 
-                إرشادات الإجابة:
-                1. تحدث باللغة العربية الفصحى الواضحة والعملية وبأسلوب حواري ذكي ومباشر.
-                2. أجب بدقة وعمق على سؤال المستخدم أياً كان موضوعه، سواء كان سؤالاً عاماً، نقاشاً تجارياً، أو استفساراً مالياً.
-                3. اربط الإجابة بأرقام نشاطه أعلاه متى ما كان ذلك مناسباً.
-                4. اختم دائماً بإخلاء مسؤولية قصير: "⚠️ تنبيه: هذه التوصيات استرشادية."
+                إرشادات الإجابة الذكية:
+                1. تحدث باللغة العربية الفصحى الواضحة والعملية بأسلوب ذكي ومباشر بدون تعقيد.
+                2. إذا كان المستخدم موظفاً (Employee)، ركز إجاباتك على الراتب، تنظيم المصاريف الشخصية، حساب جدوى الشراء أو التقسيط، وبناء صندوق الطوارئ.
+                3. إذا كان صاحب مشروع أو مستقل، ركز على التدفقات النقدية، تكلفة التشغيل، التسعير وتسييل الأصول.
+                4. إذا كان لديه أصول مجمدة، ساعده في خطط الاستفادة منها أو تسييلها بدون تعريض أمانه المالي للخطر.
+                5. اربط الأرقام الحقيقية المذكورة أعلاه في ردك، واختم دائماً بتنبيه خفيف: "⚠️ تنبيه: هذه التوصيات استرشادية."
             """.trimIndent()
+
+            // Build single coherent prompt with conversation history context
+            val conversationHistoryFormatted = if (history.isNotEmpty()) {
+                val pastTurns = history.takeLast(4).joinToString("\n") { 
+                    val speaker = if (it.sender == "user") "المستخدم" else "المرشد"
+                    "$speaker: ${it.content}"
+                }
+                "\n\nسياق المحادثة السابقة:\n$pastTurns"
+            } else ""
+
+            val fullPrompt = """
+                [تعليمات النظام وبيانات النشاط]:
+                $systemInstructionText
+                $conversationHistoryFormatted
+                
+                [سؤال أو رسالة المستخدم الحالية]:
+                $userMessage
+            """.trimIndent()
+
+            val requestPayload = GeminiRequest(
+                contents = listOf(
+                    GeminiContentItem(
+                        role = "user",
+                        parts = listOf(GeminiContentPart(text = fullPrompt))
+                    )
+                )
+            )
+
+            val adapter = moshi.adapter(GeminiRequest::class.java)
+            val jsonBody = adapter.toJson(requestPayload)
 
             for (model in MODELS_TO_TRY) {
                 try {
-                    val contents = mutableListOf<GeminiContentItem>()
-                    
-                    val recentHistory = history.takeLast(6)
-                    for (msg in recentHistory) {
-                        val role = if (msg.sender == "user") "user" else "model"
-                        contents.add(
-                            GeminiContentItem(
-                                role = role,
-                                parts = listOf(GeminiContentPart(text = msg.content))
-                            )
-                        )
-                    }
-
-                    contents.add(
-                        GeminiContentItem(
-                            role = "user",
-                            parts = listOf(GeminiContentPart(text = "$userMessage\n\n[سياق مسار المالي للمستخدم: $systemInstructionText]"))
-                        )
-                    )
-
-                    val requestPayload = GeminiRequest(
-                        contents = contents
-                    )
-
-                    val adapter = moshi.adapter(GeminiRequest::class.java)
-                    val jsonBody = adapter.toJson(requestPayload)
-
-                    // Multiple request configurations for maximum compatibility with Auth Keys & Standard Keys
                     val requestAttempts = listOf(
+                        Request.Builder()
+                            .url("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey")
+                            .post(jsonBody.toRequestBody(JSON_MEDIA_TYPE))
+                            .addHeader("x-goog-api-key", apiKey),
                         Request.Builder()
                             .url("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent")
                             .post(jsonBody.toRequestBody(JSON_MEDIA_TYPE))
                             .addHeader("x-goog-api-key", apiKey)
                             .addHeader("Authorization", "Bearer $apiKey"),
-                        Request.Builder()
-                            .url("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey")
-                            .post(jsonBody.toRequestBody(JSON_MEDIA_TYPE))
-                            .addHeader("x-goog-api-key", apiKey),
                         Request.Builder()
                             .url("https://generativelanguage.googleapis.com/v1/models/$model:generateContent?key=$apiKey")
                             .post(jsonBody.toRequestBody(JSON_MEDIA_TYPE))
@@ -353,18 +361,18 @@ object GeminiService {
 
             else -> {
                 """
-                💬 أهلاً بك! لقد استلمت رسالتك: **"$userMessage"**.
-                
-                للحصول على إجابات تفاعلية ذكية وحرة ومفتوحة عبر نموذج **Google Gemini AI**، كل ما تحتاجه هو إرسال مفتاح الـ API المجاني الخاص بك هنا في المحادثة مباشرة.
-                
-                🔑 **طريقة الحصول على المفتاح المجاني (خلال 5 ثوانٍ):**
-                1. افتح: **https://aistudio.google.com/app/apikey**
-                2. اضغط **Create API key**
-                3. انسخ المفتاح الذي يبدأ بـ **`AIzaSy...`** والصقه هنا في الشات!
-                
-                📊 **ملخص وضعك المالي السريع في مسار:**
-                - الرصيد: ${metrics.currentBalance} ${profile.baseCurrency}
-                - التدفق الشهري: ${metrics.netMonthlyCashFlow} ${profile.baseCurrency}
+                📊 **تحليل مرشد مسار المالي للاستفسار ("$userMessage"):**
+
+                بناءً على الوضع المالي لنشاطك **(${profile.businessName})**:
+                - 💰 **الرصيد المتاح:** ${metrics.currentBalance} ${profile.baseCurrency}
+                - ⏳ **فترة الأمان (Runway):** ${if (metrics.runwayMonths >= 900) "مستدامة وممتازة" else "${metrics.runwayMonths.toInt()} أشهر"}
+                - 📈 **صافي التدفق الشهري:** ${metrics.netMonthlyCashFlow} ${profile.baseCurrency}
+
+                💡 **الرأي الاستشاري السريع:**
+                - لأي التزام مالي أو استثماري جديد (مثل شراء أصول أو مصاريف تشغيلية إضافية)، احرص على ألا يتجاوز التأثير 30% من صافي التدفق الشهري الفائض لتفادي الضغط على السيولة.
+                - يمكنك تفصيل سؤالك أكثر (مثلاً: "هل أشتري سيارة بقيمة 200 ألف؟" أو "كيف أزيد المبيعات؟") وسأقوم بحساب الأثر المالي الدقيق فوراً!
+
+                ⚠️ *تنبيه: هذه التوصيات استرشادية مبنية على محاكاة البيانات.*
                 """.trimIndent()
             }
         }

@@ -4,17 +4,17 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 
 enum class BusinessType(val titleAr: String, val iconName: String) {
-    FREELANCER("مستقل / Freelancer", "person"),
+    EMPLOYEE("موظف (راتب ودخل شهري ثابت)", "person"),
+    FREELANCER("عمل حر / مستقل (Freelancer)", "laptop_mac"),
+    STORE("متجر محلي / نقطة بيع / شركة", "storefront"),
     ECOMMERCE("تجارة إلكترونية", "shopping_cart"),
-    STORE("متجر محلي / نقطة بيع", "storefront"),
-    SAAS("برمجيات كخدمة SaaS", "cloud"),
-    DIGITAL_PRODUCT("تطبيق / منتج رقمي", "phone_iphone"),
-    SERVICES("مقدم خدمات", "business_center"),
-    CONSULTING("استشارات وتدريب", "psychology"),
-    MANUFACTURING("صناعة وتشغيل", "factory"),
-    ASSET_MANAGEMENT("إدارة أصول واستثمارات", "account_balance"),
     STARTUP("مشروع ناشئ / Startup", "rocket_launch"),
-    OTHER("أخرى", "more_horiz")
+    UNEMPLOYED("باحث عن عمل / بدون وظيفة حالياً", "hourglass_empty"),
+    INVESTOR("مستثمر / أصول وعقارات", "account_balance"),
+    SAAS("برمجيات واشتراكات SaaS", "cloud"),
+    DIGITAL_PRODUCT("تطبيق / منتج رقمي", "phone_iphone"),
+    SERVICES("مقدم خدمات واستشارات", "business_center"),
+    OTHER("حساب شخصي / وضع مالي آخر", "more_horiz")
 }
 
 enum class ValueType {
@@ -98,13 +98,16 @@ enum class ScenarioType(val titleAr: String) {
 
 data class UserProfile(
     val id: String = "default_user",
-    val businessName: String = "مشروعي",
-    val businessType: BusinessType = BusinessType.FREELANCER,
+    val businessName: String = "حسابي المالي",
+    val businessType: BusinessType = BusinessType.EMPLOYEE,
     val baseCurrency: String = "USD",
-    val currentCapital: Double = 8000.0,
-    val monthlyRevenue: Double = 3000.0,
-    val monthlyExpenses: Double = 2200.0,
-    val selectedGoals: List<String> = listOf("المحافظة على السيولة", "بناء احتياطي مالي"),
+    val currentCapital: Double = 5000.0,
+    val monthlyRevenue: Double = 2000.0,
+    val monthlyExpenses: Double = 1400.0,
+    val hasFrozenAssets: Boolean = false,
+    val frozenAssetsValue: Double = 0.0,
+    val incomeSourceDescription: String = "راتب شهري ثابت",
+    val selectedGoals: List<String> = listOf("بناء صندوق طوارئ (Runway)", "زيادة الادخار الشهري"),
     val onboardingCompleted: Boolean = false,
     val isPro: Boolean = true
 )
