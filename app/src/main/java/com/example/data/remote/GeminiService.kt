@@ -29,9 +29,15 @@ data class GeminiContentItem(
 )
 
 @JsonClass(generateAdapter = true)
+data class GeminiSystemInstruction(
+    val parts: List<GeminiContentPart>
+)
+
+@JsonClass(generateAdapter = true)
 data class GeminiRequest(
     val contents: List<GeminiContentItem>,
-    val systemInstruction: GeminiContentItem? = null
+    @Json(name = "system_instruction")
+    val systemInstruction: GeminiSystemInstruction? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -51,9 +57,13 @@ data class GeminiResponse(
 
 object GeminiService {
     private const val TAG = "GeminiService"
-    // Use supported modern Gemini Flash model
-    private const val GEMINI_MODEL = "gemini-3.5-flash"
-    private const val GEMINI_FALLBACK_MODEL = "gemini-2.5-flash"
+    // Preferred Gemini models in priority order
+    private val MODELS_TO_TRY = listOf(
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-3.5-flash",
+        "gemini-flash-latest"
+    )
     private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
     private val client = OkHttpClient.Builder()
@@ -66,13 +76,25 @@ object GeminiService {
         .add(KotlinJsonAdapterFactory())
         .build()
 
+    private var customApiKey: String? = null
+
+    fun setCustomApiKey(key: String) {
+        customApiKey = key.trim()
+    }
+
     fun getActiveApiKey(): String {
-        return try {
-            val key = BuildConfig.GEMINI_API_KEY
-            if (!key.isNullOrBlank() && key != "MY_GEMINI_API_KEY") key.trim() else ""
+        if (!customApiKey.isNullOrBlank()) {
+            return customApiKey!!.trim()
+        }
+        val buildKey = try {
+            BuildConfig.GEMINI_API_KEY
         } catch (e: Exception) {
             ""
         }
+        if (!buildKey.isNullOrBlank() && buildKey != "MY_GEMINI_API_KEY") {
+            return buildKey.trim()
+        }
+        return ""
     }
 
     suspend fun askAdvisor(
@@ -81,40 +103,51 @@ object GeminiService {
         profile: UserProfile,
         metrics: FinancialMetrics
     ): String = withContext(Dispatchers.IO) {
+        val trimmedMsg = userMessage.trim()
+
+        // Auto-detect if user pastes an API key directly in chat
+        if ((trimmedMsg.startsWith("AQ.") || trimmedMsg.startsWith("AIzaSy")) && trimmedMsg.length >= 25) {
+            setCustomApiKey(trimmedMsg)
+            return@withContext """
+                🎉 **تم تفعيل وحفظ مفتاح Gemini API بنجاح!**
+                
+                رمز المفتاح: `${trimmedMsg.take(10)}...${trimmedMsg.takeLast(4)}`
+                تم ربط المحرك مباشرة بنماذج الذكاء الاصطناعي من Google. يمكنك الآن سؤالي أي استفسار وسأجيبك فوراً! 🚀
+            """.trimIndent()
+        }
+
         val apiKey = getActiveApiKey()
 
+        var lastErrorDetails = ""
+
         if (apiKey.isNotBlank()) {
-            val systemInstruction = """
-                أنت 'مرشد مسار الذكي' (MASAR AI Advisor)، مستشار مالي وتجاري واستراتيجي خبير متخصص في مساعدة رواد الأعمال، وأصحاب المشروعات، والمستقلين.
+            val systemInstructionText = """
+                أنت 'مرشد مسار الذكي' (MASAR AI Advisor)، مستشار مالي وتجاري واستراتيجي خبير وودود لمساعدة رواد الأعمال والمستقلين.
                 
-                البيانات المالية الحالية للمستخدم (محسوبة لحظياً بدقة عبر المحرك المالي لتطبيق مسار):
+                بيانات المستخدم المالية الحالية في مسار:
                 - اسم النشاط: ${profile.businessName}
                 - نوع النشاط: ${profile.businessType.titleAr}
-                - العملة: ${profile.baseCurrency}
+                - العملة الأساسية: ${profile.baseCurrency}
                 - الرصيد النقدي الفعلي الحالي: ${metrics.currentBalance} ${profile.baseCurrency}
                 - إجمالي الإيرادات الشهرية: ${metrics.totalMonthlyRevenue} ${profile.baseCurrency}
                 - إجمالي المصروفات الشهرية: ${metrics.totalMonthlyExpenses} ${profile.baseCurrency}
                 - صافي التدفق النقدي الشهري: ${metrics.netMonthlyCashFlow} ${profile.baseCurrency}
-                - فترة الأمان المالي والاستدامة (Runway): ${if (metrics.runwayMonths >= 900) "فائقة الأمان ومستدامة (تدفق إيجابي)" else "${metrics.runwayMonths} أشهر"}
+                - فترة الأمان المالي (Runway): ${if (metrics.runwayMonths >= 900) "فائقة الأمان ومستدامة (تدفق إيجابي)" else "${metrics.runwayMonths} أشهر"}
                 - نسبة المصاريف الثابتة: ${metrics.fixedExpensesRatio}%
-                - مستوى المخاطر العام: ${metrics.overallRiskLevel.titleAr}
-                - أهداف المستخدم: ${profile.selectedGoals.joinToString("، ")}
+                - مستوى المخاطر: ${metrics.overallRiskLevel.titleAr}
+                - الأهداف: ${profile.selectedGoals.joinToString("، ")}
 
                 إرشادات الإجابة:
-                1. تحدث باللغة العربية الفصحى الواضحة والراقية بأسلوب عملي، مباشر، وداعم.
-                2. اربط استشارتك دائماً بالأرقام والوضع الفعلي أعلاه، وقدم خطوات واضحة (1, 2, 3) قابلة للتطبيق.
-                3. في حال السؤال عن قرارات شراء أو توظيف أو تسعير أو ترشيد، اذكر الأثر النقدي المباشر وبدائل ذكية.
-                4. اختم دائماً بإخلاء مسؤولية قصير ولطيف: "⚠️ تنبيه: هذه التحليلات استرشادية مبنية على البيانات المالية ولا تغني عن الاستشارة المهنية المتخصصة."
+                1. تحدث باللغة العربية الفصحى الواضحة والعملية وبأسلوب حواري ذكي ومباشر.
+                2. أجب بدقة وعمق على سؤال المستخدم أياً كان موضوعه، سواء كان سؤالاً عاماً، نقاشاً تجارياً، أو استفساراً مالياً.
+                3. اربط الإجابة بأرقام نشاطه أعلاه متى ما كان ذلك مناسباً.
+                4. اختم دائماً بإخلاء مسؤولية قصير: "⚠️ تنبيه: هذه التوصيات استرشادية."
             """.trimIndent()
 
-            // Try primary model first, fallback to secondary model if needed
-            val modelsToTry = listOf(GEMINI_MODEL, GEMINI_FALLBACK_MODEL)
-            for (model in modelsToTry) {
+            for (model in MODELS_TO_TRY) {
                 try {
-                    // Build multi-turn content items from recent history (last 6 messages)
                     val contents = mutableListOf<GeminiContentItem>()
                     
-                    // Add previous messages
                     val recentHistory = history.takeLast(6)
                     for (msg in recentHistory) {
                         val role = if (msg.sender == "user") "user" else "model"
@@ -126,52 +159,70 @@ object GeminiService {
                         )
                     }
 
-                    // Add current user message
                     contents.add(
                         GeminiContentItem(
                             role = "user",
-                            parts = listOf(GeminiContentPart(text = userMessage))
+                            parts = listOf(GeminiContentPart(text = "$userMessage\n\n[سياق مسار المالي للمستخدم: $systemInstructionText]"))
                         )
                     )
 
                     val requestPayload = GeminiRequest(
-                        contents = contents,
-                        systemInstruction = GeminiContentItem(
-                            role = "user",
-                            parts = listOf(GeminiContentPart(text = systemInstruction))
-                        )
+                        contents = contents
                     )
 
                     val adapter = moshi.adapter(GeminiRequest::class.java)
                     val jsonBody = adapter.toJson(requestPayload)
 
-                    val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
-                    val request = Request.Builder()
-                        .url(url)
-                        .post(jsonBody.toRequestBody(JSON_MEDIA_TYPE))
-                        .build()
+                    // Multiple request configurations for maximum compatibility with Auth Keys & Standard Keys
+                    val requestAttempts = listOf(
+                        Request.Builder()
+                            .url("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent")
+                            .post(jsonBody.toRequestBody(JSON_MEDIA_TYPE))
+                            .addHeader("x-goog-api-key", apiKey)
+                            .addHeader("Authorization", "Bearer $apiKey"),
+                        Request.Builder()
+                            .url("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey")
+                            .post(jsonBody.toRequestBody(JSON_MEDIA_TYPE))
+                            .addHeader("x-goog-api-key", apiKey),
+                        Request.Builder()
+                            .url("https://generativelanguage.googleapis.com/v1/models/$model:generateContent?key=$apiKey")
+                            .post(jsonBody.toRequestBody(JSON_MEDIA_TYPE))
+                    )
 
-                    val response = client.newCall(request).execute()
-                    if (response.isSuccessful) {
-                        val responseBody = response.body?.string()
-                        if (!responseBody.isNullOrBlank()) {
-                            val respAdapter = moshi.adapter(GeminiResponse::class.java)
-                            val parsed = respAdapter.fromJson(responseBody)
-                            val text = parsed?.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
-                            if (!text.isNullOrBlank()) {
-                                return@withContext text.trim()
+                    for (reqBuilder in requestAttempts) {
+                        try {
+                            val response = client.newCall(reqBuilder.build()).execute()
+                            val responseBody = response.body?.string()
+
+                            if (response.isSuccessful && !responseBody.isNullOrBlank()) {
+                                val respAdapter = moshi.adapter(GeminiResponse::class.java)
+                                val parsed = respAdapter.fromJson(responseBody)
+                                val text = parsed?.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+                                if (!text.isNullOrBlank()) {
+                                    Log.d(TAG, "Successfully received Gemini response from $model")
+                                    return@withContext text.trim()
+                                }
+                            } else {
+                                lastErrorDetails = "HTTP ${response.code}: $responseBody"
+                                Log.w(TAG, "Gemini attempt for model $model returned $lastErrorDetails")
                             }
+                        } catch (attemptEx: Exception) {
+                            Log.w(TAG, "Single request attempt failed: ${attemptEx.message}")
                         }
-                    } else {
-                        Log.w(TAG, "Gemini API ($model) failed with code ${response.code}")
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error with model $model: ${e.message}")
+                    lastErrorDetails = e.message ?: "Network error"
+                    Log.e(TAG, "Exception calling Gemini model $model: ${e.message}", e)
                 }
             }
         }
 
-        // Offline Deterministic Engine Fallback
+        // If API key was provided but returned an explicit authentication error
+        if (apiKey.isNotBlank() && (lastErrorDetails.contains("400") || lastErrorDetails.contains("403") || lastErrorDetails.contains("API_KEY_INVALID"))) {
+            Log.w(TAG, "Gemini API key returned authentication error: $lastErrorDetails")
+        }
+
+        // Contextual Natural Conversational Engine Fallback
         return@withContext generateDeterministicAdvice(userMessage, profile, metrics)
     }
 
@@ -180,7 +231,54 @@ object GeminiService {
         profile: UserProfile,
         metrics: FinancialMetrics
     ): String {
-        val q = userMessage.lowercase()
+        val q = userMessage.trim().lowercase()
+
+        // Check for greetings or casual messages
+        if (q.matches(Regex("^(مرحبا|أهلا|اهلا|سلام|السلام عليكم|صباح الخير|مساء الخير|hi|hello|hey|hhh|هههه|ههه|هلا|حياك).*"))) {
+            return """
+                أهلاً وسهلاً بك في **مرشد مسار الذكي**! 👋
+                
+                أنا جاهز ومستعد لمساعدتك في كل ما يخص نشاطك **(${profile.businessName})**:
+                
+                - 💰 **رصيدك الحالي:** ${metrics.currentBalance} ${profile.baseCurrency}
+                - ⏳ **فترة الأمان (Runway):** ${if (metrics.runwayMonths >= 900) "مستدامة وفائضة" else "${metrics.runwayMonths.toInt()} أشهر"}
+                - 📈 **صافي التدفق:** ${metrics.netMonthlyCashFlow} ${profile.baseCurrency}/شهرياً
+                
+                عن ماذا تحب أن نتحدث اليوم؟ (خطط تنمية الإيرادات، ترشيد التكاليف، تسييل الأصول، أو قرار توظيف جديد؟)
+            """.trimIndent()
+        }
+
+        if (q.contains("شكرا") || q.contains("شكراً") || q.contains("يعطيك العافية") || q.contains("تسلم") || q.contains("thanks")) {
+            return "على الرحب والسعة دائماً! 🌟 أنا هنا لمساعدتك في أي وقت لاتخاذ أفضل القرارات المالية لمشروعك."
+        }
+
+        if (q.contains("توظيف") || q.contains("موظف") || q.contains("هيرينج") || q.contains("راتب") || q.contains("فريق")) {
+            val maxSalarySafe = (metrics.netMonthlyCashFlow * 0.4).coerceAtLeast(0.0)
+            return """
+                👥 **تحليل قرار التوظيف لمشروعك (${profile.businessName}):**
+                
+                1. **القدرة المالية الحالية:**
+                   - صافي التدفق الشهري: ${metrics.netMonthlyCashFlow} ${profile.baseCurrency}.
+                   - الراتب الآمن المقترح: لا يتجاوز ${maxSalarySafe.toInt()} ${profile.baseCurrency} شهرياً للحفاظ على استقرار الـ Runway.
+                
+                2. **توصية مسار:**
+                   - إذا كانت الوظيفة تولد دخلاً مباشراً (كالمبيعات أو التسويق)، فابدأ بنظام النسبة أو العمل الحر (Freelance) لمدة شهرين للتأكد من العائد (ROI) قبل التثبيت.
+                
+                ⚠️ *تنبيه: التوصية استرشادية بناءً على أرقامك المدخلة.*
+            """.trimIndent()
+        }
+
+        if (q.contains("تسعير") || q.contains("سعر") || q.contains("رفع السعر") || q.contains("خصم")) {
+            return """
+                🏷️ **استراتيجية التسعير المقترحة:**
+                
+                - لتغطية مصاريفك الشهرية (${metrics.totalMonthlyExpenses} ${profile.baseCurrency}) وتحقيق هامش أمان 25%:
+                1. **التسعير المبني على القيمة (Value-Based):** ركز على المشكلة التي تحلها للعميل وقيمتها لديه بدلاً من حساب تكلفة الوقت فقط.
+                2. **باقات متدرجة (Tiered Pricing):** قدم 3 باقات (أساسية، متقدمة، احترافية) لتشجيع العميل على اختيار الباقة الوسطى.
+                
+                ⚠️ *تنبيه: التوصية استرشادية.*
+            """.trimIndent()
+        }
 
         return when {
             q.contains("تسييل") || q.contains("بيع أصل") || q.contains("أصول") -> {
@@ -190,13 +288,13 @@ object GeminiService {
                 بناءً على رصيدك الحالي (${metrics.currentBalance} ${profile.baseCurrency}) وـ Runway البالغ (${metrics.runwayMonths} أشهر):
                 
                 1. **البيع المباشر السريع (Direct Cashout):**
-                   - الأصول الرقمية أو المنتجات غير النشطة يمكن طرحها للبيع مع خصم 10-15% للحصول على كاش خلال 14-30 يوماً.
+                   - الأصول الرقمية أو المعدات غير المستغلة يمكن تسييلها مع خصم تشجيعي لتوفير سيولة عاجلة.
                 
                 2. **التأجير التشغيلي (Operational Leasing):**
-                   - بدلاً من التنازل الكامل عن الملكية، قم بتأجير المعدات أو استضافة الخدمة بعائد شهري يغطي جزءاً من مصاريفك الثابتة (${metrics.totalMonthlyExpenses} ${profile.baseCurrency}).
+                   - تأجير الأصل أو الخدمة بعائد شهري يغطي جزءاً من مصاريفك الثابتة (${metrics.totalMonthlyExpenses} ${profile.baseCurrency}).
                 
                 3. **ترخيص الكود أو المنتج (Whitelabel):**
-                   - بيع رخص استخدام مخصصة لشركات أخرى يضمن إيرادات إضافية دون تكاليف تشغيلية جديدة.
+                   - بيع رخص استخدام يضمن إيرادات دورية إضافية دون تكاليف جديدة.
                 
                 ⚠️ *تنبيه: التحليلات مبنية على محاكاة البيانات المدخلة ولا تعد مشورة استثمارية رسمية.*
                 """.trimIndent()
@@ -255,21 +353,18 @@ object GeminiService {
 
             else -> {
                 """
-                📊 **التحليل المالي الاستشاري من مسار:**
+                💬 أهلاً بك! لقد استلمت رسالتك: **"$userMessage"**.
                 
-                بناءً على وضع نشاطك الحالي (${profile.businessName} - ${profile.businessType.titleAr}):
+                للحصول على إجابات تفاعلية ذكية وحرة ومفتوحة عبر نموذج **Google Gemini AI**، كل ما تحتاجه هو إرسال مفتاح الـ API المجاني الخاص بك هنا في المحادثة مباشرة.
                 
-                - **الرصيد المتاح:** ${metrics.currentBalance} ${profile.baseCurrency}
-                - **الإيرادات الشهرية:** ${metrics.totalMonthlyRevenue} ${profile.baseCurrency}
-                - **المصروفات الشهرية:** ${metrics.totalMonthlyExpenses} ${profile.baseCurrency}
-                - **مستوى المخاطر العام:** ${metrics.overallRiskLevel.titleAr}
+                🔑 **طريقة الحصول على المفتاح المجاني (خلال 5 ثوانٍ):**
+                1. افتح: **https://aistudio.google.com/app/apikey**
+                2. اضغط **Create API key**
+                3. انسخ المفتاح الذي يبدأ بـ **`AIzaSy...`** والصقه هنا في الشات!
                 
-                💡 **الخطوات ذات الأولوية القصوى:**
-                1. بناء خطة شهرية لزيادة الإيرادات بنسبة 10-15% عبر تنويع العروض أو استهداف عملاء إضافيين.
-                2. تثبيت المصروفات التشغيلية وضبط الميزانيات التقديرية لكل فئة.
-                3. تجربة أي قرار مالي كبير عبر محاكي مسار قبل توقيع أي عقود أو التزامات جديدة.
-                
-                ⚠️ *تنبيه: التحليلات مبنية على محاكاة البيانات المدخلة ولا تعد مشورة استثمارية رسمية.*
+                📊 **ملخص وضعك المالي السريع في مسار:**
+                - الرصيد: ${metrics.currentBalance} ${profile.baseCurrency}
+                - التدفق الشهري: ${metrics.netMonthlyCashFlow} ${profile.baseCurrency}
                 """.trimIndent()
             }
         }
